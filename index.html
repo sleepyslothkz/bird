@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="kk">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KZ Clumsy Bird</title>
+    <title>KZ BIRD</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #70c5ce; }
-        canvas { display: block; touch-action: none; }
+        canvas { display: block; }
     </style>
 </head>
 <body>
@@ -14,107 +14,38 @@
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
+let birdY = 200, v = 0, score = 0, pipes = [], gOver = false;
 
-// Настройка четкости
-const dpr = window.devicePixelRatio || 1;
-function setup() {
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
-    ctx.scale(dpr, dpr);
-}
+function reset() { birdY = 200; v = 0; score = 0; pipes = []; gOver = false; }
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 
-// Звуки (если файлов нет в репозитории, игра просто проигнорирует их)
-const soundWing = new Audio('wing.mp3');
-const soundHit = new Audio('hit.mp3');
-let isAudioInit = false;
-
-let highScore = localStorage.getItem('kzBirdScore') || 0;
-let birdY, velocity, score, pipes, particles, gameState = 'START', countdown = 3;
-
-// Флаг Казахстана (SVG)
-const flag = new Image();
-flag.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iIzAwQUVDRSIvPjxwYXRoIGQ9Ik0zOTUuNSAxMTcuNWwtNS42IDE3LjEtMTguMS4xIDE0LjYgMTAuNi01LjYgMTcuMSA5LjctOS44IDUuNiAxNy4xIDE0LjYtMTAuNi01LjYtMTcuMSAxNC42LTEwLjZ6IiBmaWxsPSIjRkZEMDREIi8+PGNpcmNsZSBjeD0iNDAwIiBjeT0iMjAwIiByPSI2MCIgZmlsbD0iI0ZGRDA0RCIvPjxjaXJjbGUgY3g9IjQwMCIgY3k9IjIwMCIgcj0iNTAiIGZpbGw9IiMwMEFFQ0UiLz48ZyBmaWxsPSIjRkZEMDREIj48cGF0aCBkPSJNMzUwIDE4NWw4IDM5LTE5LTguMXptMTAwIDBscy04IDM5IDE5LTguMXoiLz48Y2lyY2xlIGN4PSIzNDAiIGN5PSIyMzAiIHI9IjgiLz48Y2lyY2xlIGN4PSI0NjAiIGN5PSIyMzAiIHI9IjgiLz48cGF0aCBkPSJNMzcwIDI4MHMyMCAzMCA2MCAwYy0xNSAyNS00NSAyNS02MCAweiIvPjwvZz48L3N2Zz4=';
-
-function init() {
-    birdY = window.innerHeight / 2;
-    velocity = 0; score = 0; pipes = []; particles = [];
-}
-
-function handleInput(e) {
-    if(e) e.preventDefault();
-    if(!isAudioInit) { isAudioInit = true; soundWing.play().then(()=>soundWing.pause()); }
-    
-    if(gameState === 'START' || gameState === 'OVER') {
-        init();
-        gameState = 'COUNT';
-        countdown = 3;
-        let t = setInterval(() => {
-            countdown--;
-            if(countdown <= 0) { clearInterval(t); gameState = 'PLAY'; }
-        }, 1000);
-    } else if(gameState === 'PLAY') {
-        velocity = window.innerHeight * -0.012;
-        soundWing.currentTime = 0; soundWing.play().catch(()=>{});
-    }
-}
-
-window.addEventListener('keydown', (e) => { if(e.code==='Space') handleInput(); });
-canvas.addEventListener('touchstart', handleInput, {passive:false});
+window.addEventListener('touchstart', () => { if(gOver) reset(); else v = -8; });
+window.addEventListener('keydown', (e) => { if(e.code === 'Space') { if(gOver) reset(); else v = -8; } });
 
 function draw() {
-    const w = window.innerWidth, h = window.innerHeight;
-    ctx.fillStyle = "#70c5ce"; ctx.fillRect(0,0,w,h);
-
-    if(gameState === 'PLAY') {
-        velocity += h * 0.0006; birdY += velocity;
-        if(pipes.length===0 || pipes[pipes.length-1].x < w*0.5) {
-            pipes.push({x:w, y:Math.random()*(h-350)+100, scored:false});
+    ctx.fillStyle = "#70c5ce"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (!gOver) {
+        v += 0.4; birdY += v;
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+            pipes.push({ x: canvas.width, y: Math.random() * (canvas.height - 300) + 100 });
         }
         pipes.forEach((p, i) => {
-            p.x -= w*0.006;
+            p.x -= 3;
             ctx.fillStyle = "#2ecc71";
-            ctx.fillRect(p.x, 0, 60, p.y);
-            ctx.fillRect(p.x, p.y+h*0.28, 60, h);
-            if(w*0.2+40 > p.x && w*0.2 < p.x+60 && (birdY < p.y || birdY+30 > p.y+h*0.28)) {
-                gameState = 'OVER'; soundHit.play().catch(()=>{});
-            }
-            if(!p.scored && p.x < w*0.2) { score++; p.scored=true; }
-            if(p.x < -60) pipes.splice(i,1);
+            ctx.fillRect(p.x, 0, 50, p.y);
+            ctx.fillRect(p.x, p.y + 200, 50, canvas.height);
+            if (p.x < 50 && p.x > 0 && (birdY < p.y || birdY > p.y + 180)) gOver = true;
+            if (p.x === 50) score++;
+            if (p.x < -50) pipes.splice(i, 1);
         });
-        if(birdY > h || birdY < 0) { gameState = 'OVER'; soundHit.play().catch(()=>{}); }
+        if (birdY > canvas.height || birdY < 0) gOver = true;
     }
-
-    // Рисуем флаг
-    ctx.save();
-    ctx.translate(w*0.2 + 25, birdY + 12.5);
-    ctx.rotate(Math.min(Math.PI/4, Math.max(-Math.PI/4, velocity*0.1)));
-    ctx.drawImage(flag, -25, -12.5, 50, 25);
-    ctx.restore();
-
-    // Рекорд и интерфейс
-    ctx.fillStyle = "white"; ctx.textAlign = "center";
-    ctx.font = `bold 18px Arial`; ctx.fillText(`РЕКОРД: ${highScore}`, 70, 40);
-    
-    if(gameState==='COUNT') {
-        ctx.font = "bold 80px Arial"; ctx.fillText(countdown > 0 ? countdown : "КЕТТІК!", w/2, h/2);
-    } else if(gameState==='PLAY') {
-        ctx.font = "bold 50px Arial"; ctx.fillText(score, w/2, 80);
-    } else if(gameState==='OVER') {
-        if(score > highScore) { highScore = score; localStorage.setItem('kzBirdScore', highScore); }
-        ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0,w,h);
-        ctx.fillStyle = "#f1c40f"; ctx.font = "bold 40px Arial"; ctx.fillText("ЖЕҢІЛДІҢ!", w/2, h/2-20);
-        ctx.fillStyle = "white"; ctx.font = "20px Arial"; ctx.fillText("Қайтадан бастау үшін бас", w/2, h/2+30);
-    } else if(gameState==='START') {
-        ctx.font = "bold 30px Arial"; ctx.fillText("CLUMSY BIRD KZ", w/2, h/2-20);
-        ctx.font = "20px Arial"; ctx.fillText("БАСТАУ ҮШІН БАС", w / 2, h / 2 + 20);
-    }
+    ctx.fillStyle = "yellow"; ctx.fillRect(50, birdY, 30, 20); // Птичка
+    ctx.fillStyle = "white"; ctx.font = "30px Arial"; ctx.fillText(score, 20, 50);
+    if (gOver) ctx.fillText("GAME OVER - TAP TO RESET", 50, canvas.height/2);
     requestAnimationFrame(draw);
 }
-
-setup(); init(); draw();
-window.onresize = setup;
+resize(); draw(); window.onresize = resize;
 </script>
 </body>
 </html>

@@ -1,1 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clumsy Bird</title>
+    <style>
+        body { margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; background: #222; font-family: Arial, sans-serif; }
+        canvas { border: 4px solid #fff; background: #70c5ce; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
 
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+// Настройки экрана
+canvas.width = 320;
+canvas.height = 480;
+
+// Игровые переменные
+let birdY = 200;
+let birdX = 50;
+let velocity = 0;
+let gravity = 0.25;
+let jump = -4.5;
+let score = 0;
+let gameOver = false;
+
+// Трубы
+let pipes = [];
+let pipeWidth = 50;
+let pipeGap = 120;
+
+function createPipe() {
+    let height = Math.floor(Math.random() * (canvas.height - pipeGap - 100)) + 50;
+    pipes.push({ x: canvas.width, y: height });
+}
+
+function resetGame() {
+    birdY = 200;
+    velocity = 0;
+    pipes = [];
+    score = 0;
+    gameOver = false;
+    createPipe();
+}
+
+// Управление
+window.addEventListener('keydown', () => {
+    if (gameOver) resetGame();
+    else velocity = jump;
+});
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (gameOver) resetGame();
+    else velocity = jump;
+});
+
+function draw() {
+    // Фон
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (!gameOver) {
+        velocity += gravity;
+        birdY += velocity;
+
+        // Движение труб
+        if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 150) {
+            createPipe();
+        }
+
+        pipes.forEach((pipe, index) => {
+            pipe.x -= 2;
+
+            // Отрисовка труб
+            ctx.fillStyle = "#2ecc71";
+            ctx.fillRect(pipe.x, 0, pipeWidth, pipe.y); // Верхняя
+            ctx.fillRect(pipe.x, pipe.y + pipeGap, pipeWidth, canvas.height); // Нижняя
+
+            // Столкновения
+            if (birdX + 20 > pipe.x && birdX < pipe.x + pipeWidth) {
+                if (birdY < pipe.y || birdY + 20 > pipe.y + pipeGap) {
+                    gameOver = true;
+                }
+            }
+
+            // Очки
+            if (pipe.x === birdX) score++;
+
+            // Удаление труб за экраном
+            if (pipe.x + pipeWidth < 0) pipes.splice(index, 1);
+        });
+
+        // Проверка пола и потолка
+        if (birdY + 20 > canvas.height || birdY < 0) gameOver = true;
+    }
+
+    // Птичка (просто желтый квадрат, можно заменить на картинку)
+    ctx.fillStyle = "#f1c40f";
+    ctx.fillRect(birdX, birdY, 20, 20);
+
+    // Счет
+    ctx.fillStyle = "white";
+    ctx.font = "24px Arial";
+    ctx.fillText(`Очки: ${score}`, 10, 30);
+
+    if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center";
+        ctx.fillText("ИГРА ОКОНЧЕНА", canvas.width / 2, canvas.height / 2);
+        ctx.font = "16px Arial";
+        ctx.fillText("Нажми, чтобы начать заново", canvas.width / 2, canvas.height / 2 + 40);
+        ctx.textAlign = "left";
+    }
+
+    requestAnimationFrame(draw);
+}
+
+resetGame();
+draw();
+</script>
+</body>
+</html>

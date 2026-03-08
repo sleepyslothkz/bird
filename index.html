@@ -1,138 +1,385 @@
 <!DOCTYPE html>
 <html lang="kk">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KZ BIRD - SOUND FIX</title>
-    <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #70c5ce; font-family: Arial, sans-serif; }
-        canvas { display: block; touch-action: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KZ BIRD - SOUND FIX</title>
+
+<style>
+body, html {
+margin:0;
+padding:0;
+width:100%;
+height:100%;
+overflow:hidden;
+background-color:#70c5ce;
+font-family:Arial,sans-serif;
+}
+
+canvas{
+display:block;
+touch-action:none;
+}
+</style>
+
 </head>
 <body>
+
 <canvas id="game"></canvas>
+
 <script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
 
-// Настройка четкости экрана
-const dpr = window.devicePixelRatio || 1;
-function resize() {
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
-    ctx.scale(dpr, dpr);
+const canvas = document.getElementById('game')
+const ctx = canvas.getContext('2d')
+
+const dpr = window.devicePixelRatio || 1
+
+function resize(){
+
+canvas.width = window.innerWidth * dpr
+canvas.height = window.innerHeight * dpr
+
+canvas.style.width = window.innerWidth + 'px'
+canvas.style.height = window.innerHeight + 'px'
+
+ctx.setTransform(dpr,0,0,dpr,0,0)
+
 }
 
-// СИСТЕМА ЗВУКА (Как в Марио)
-let audioCtx = null;
-function playSnd(f, type, dur) {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    try {
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = type; osc.frequency.value = f;
-        g.gain.setValueAtTime(0.05, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
-        osc.connect(g); g.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + dur);
-    } catch(e) {}
+
+
+
+
+
+// AUDIO SYSTEM
+
+let audioCtx = null
+
+function unlockAudio(){
+
+if(!audioCtx){
+audioCtx = new (window.AudioContext || window.webkitAudioContext)()
 }
 
-let highScore = localStorage.getItem('kz_bird_v3_best') || 0;
-const flag = new Image();
-flag.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iIzAwQUVDRSIvPjxwYXRoIGQ9Ik0zOTUuNSAxMTcuNWwtNS42IDE3LjEtMTguMS4xIDE0LjYgMTAuNi01LjYgMTcuMSA5LjctOS44IDUuNiAxNy4xIDE0LjYtMTAuNi01LjYtMTcuMSAxNC42LTEwLjZ6IiBmaWxsPSIjRkZEMDREIi8+PGNpcmNsZSBjeD0iNDAwIiBjeT0iMjAwIiByPSI2MCIgZmlsbD0iI0ZGRDA0RCIvPjxjaXJjbGUgY3g9IjQwMCIgY3k9IjIwMCIgcj0iNTAiIGZpbGw9IiMwMEFFQ0UiLz48ZyBmaWxsPSIjRkZEMDREIj48cGF0aCBkPSJNMzUwIDE4NWw4IDM5LTE5LTguMXptMTAwIDBscy04IDM5IDE5LTguMXoiLz48Y2lyY2xlIGN4PSIzNDAiIGN5PSIyMzAiIHI9IjgiLz48Y2lyY2xlIGN4PSI0NjAiIGN5PSIyMzAiIHI9IjgiLz48cGF0aCBkPSJNMzcwIDI4MHMyMCAzMCA2MCAwYy0xNSAyNS00NSAyNS02MCAweiIvPjwvZz48L3N2Zz4=';
-
-let birdY, v, score, pipes, gameState = 'START', timerVal = 3;
-
-function reset() {
-    birdY = window.innerHeight / 2; v = 0; score = 0; pipes = [];
+if(audioCtx.state === "suspended"){
+audioCtx.resume()
 }
 
-function startCount() {
-    gameState = 'COUNT'; timerVal = 3;
-    playSnd(400, 'sine', 0.1);
-    let interval = setInterval(() => {
-        timerVal--;
-        if (timerVal > 0) { playSnd(400, 'sine', 0.1); }
-        else if (timerVal === 0) { playSnd(600, 'sine', 0.2); }
-        else { clearInterval(interval); gameState = 'PLAY'; }
-    }, 1000);
 }
 
-function input(e) {
-    if (e) e.preventDefault();
-    if (gameState === 'START' || gameState === 'OVER') {
-        reset(); startCount();
-    } else if (gameState === 'PLAY') {
-        v = window.innerHeight * -0.011;
-        playSnd(450, 'square', 0.08); // Звук прыжка
-    }
+// разблокировка звука для Chrome
+document.addEventListener("touchstart",unlockAudio,{once:true})
+document.addEventListener("mousedown",unlockAudio,{once:true})
+document.addEventListener("keydown",unlockAudio,{once:true})
+
+
+
+function playSnd(f,type,dur){
+
+if(!audioCtx){
+audioCtx = new (window.AudioContext || window.webkitAudioContext)()
 }
 
-window.addEventListener('touchstart', input, {passive: false});
-window.addEventListener('mousedown', input);
-window.addEventListener('resize', resize);
-
-function draw() {
-    const w = window.innerWidth, h = window.innerHeight;
-    ctx.fillStyle = "#70c5ce"; ctx.fillRect(0, 0, w, h);
-
-    if (gameState === 'PLAY') {
-        v += h * 0.0006; birdY += v;
-        if (pipes.length === 0 || pipes[pipes.length - 1].x < w - 250) {
-            pipes.push({ x: w, y: Math.random() * (h - 300) + 100, scored: false });
-        }
-        pipes.forEach((p, i) => {
-            p.x -= w * 0.006;
-            ctx.fillStyle = "#2ecc71";
-            ctx.fillRect(p.x, 0, 60, p.y);
-            ctx.fillRect(p.x, p.y + 220, 60, h);
-            if (w * 0.2 + 40 > p.x && w * 0.2 < p.x + 60 && (birdY < p.y || birdY + 25 > p.y + 220)) {
-                gameState = 'OVER'; playSnd(150, 'sawtooth', 0.4); // Звук удара
-            }
-            if (!p.scored && p.x < w * 0.2) {
-                score++; p.scored = true;
-                if (score > highScore) { highScore = score; localStorage.setItem('kz_bird_v3_best', highScore); }
-            }
-            if (p.x < -60) pipes.splice(i, 1);
-        });
-        if (birdY > h || birdY < 0) { gameState = 'OVER'; playSnd(150, 'sawtooth', 0.4); }
-    }
-
-    // Отрисовка флага
-    ctx.save();
-    ctx.translate(w * 0.2 + 25, birdY + 12.5);
-    if (gameState === 'PLAY') ctx.rotate(Math.min(Math.PI/4, Math.max(-Math.PI/4, v * 0.1)));
-    ctx.drawImage(flag, -25, -12.5, 50, 25);
-    ctx.restore();
-
-    // Интерфейс
-    ctx.fillStyle = "white";
-    ctx.textAlign = "left"; ctx.font = "bold 20px Arial";
-    ctx.fillText(`РЕКОРД: ${highScore}`, 20, 40);
-
-    ctx.textAlign = "center";
-    if (gameState === 'COUNT') {
-        const labels = ["КЕТТІК!", "БІР", "ЕКІ", "ҮШ"];
-        ctx.font = "bold 80px Arial"; ctx.fillText(labels[timerVal], w / 2, h / 2);
-    } else if (gameState === 'PLAY') {
-        ctx.font = "bold 60px Arial"; ctx.fillText(score, w / 2, 100);
-    } else if (gameState === 'OVER') {
-        ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillRect(0,0,w,h);
-        ctx.fillStyle = "white"; ctx.font = "bold 40px Arial"; ctx.fillText("ЖЕҢІЛДІҢ!", w / 2, h / 2);
-        ctx.font = "24px Arial"; ctx.fillText(`Ұпай: ${score}`, w / 2, h / 2 + 50);
-        ctx.fillText("Қайталау үшін бас", w / 2, h / 2 + 90);
-    } else if (gameState === 'START') {
-        ctx.font = "bold 30px Arial"; ctx.fillText("CLUMSY BIRD KZ", w / 2, h / 2);
-        ctx.font = "20px Arial"; ctx.fillText("БАСТАУ ҮШІН БАС", w / 2, h / 2 + 40);
-    }
-    requestAnimationFrame(draw);
+if(audioCtx.state === "suspended"){
+audioCtx.resume()
 }
 
-resize(); reset(); draw();
+try{
+
+const osc = audioCtx.createOscillator()
+const g = audioCtx.createGain()
+
+osc.type = type
+osc.frequency.value = f
+
+g.gain.setValueAtTime(0.08,audioCtx.currentTime)
+g.gain.exponentialRampToValueAtTime(0.01,audioCtx.currentTime + dur)
+
+osc.connect(g)
+g.connect(audioCtx.destination)
+
+osc.start()
+osc.stop(audioCtx.currentTime + dur)
+
+}catch(e){}
+
+}
+
+
+
+
+
+let highScore = localStorage.getItem("kz_bird_v3_best") || 0
+
+const flag = new Image()
+
+flag.src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iIzAwQUVDRSIvPjxwYXRoIGQ9Ik0zOTUuNSAxMTcuNWwtNS42IDE3LjEtMTguMS4xIDE0LjYgMTAuNi01LjYgMTcuMSA5LjctOS44IDUuNiAxNy4xIDE0LjYtMTAuNi01LjYtMTcuMSAxNC42LTEwLjZ6IiBmaWxsPSIjRkZEMDREIi8+PGNpcmNsZSBjeD0iNDAwIiBjeT0iMjAwIiByPSI2MCIgZmlsbD0iI0ZGRDA0RCIvPjxjaXJjbGUgY3g9IjQwMCIgY3k9IjIwMCIgcj0iNTAiIGZpbGw9IiMwMEFFQ0UiLz48ZyBmaWxsPSIjRkZEMDREIj48cGF0aCBkPSJNMzUwIDE4NWw4IDM5LTE5LTguMXptMTAwIDBscy04IDM5IDE5LTguMXoiLz48Y2lyY2xlIGN4PSIzNDAiIGN5PSIyMzAiIHI9IjgiLz48Y2lyY2xlIGN4PSI0NjAiIGN5PSIyMzAiIHI9IjgiLz48cGF0aCBkPSJNMzcwIDI4MHMyMCAzMCA2MCAwYy0xNSAyNS00NSAyNS02MCAweiIvPjwvZz48L3N2Zz4="
+
+
+
+let birdY
+let v
+let score
+let pipes
+
+let gameState="START"
+
+let timerVal=3
+
+
+
+function reset(){
+
+birdY=window.innerHeight/2
+v=0
+score=0
+pipes=[]
+
+}
+
+
+
+function startCount(){
+
+gameState="COUNT"
+timerVal=3
+
+playSnd(400,"sine",0.1)
+
+let interval=setInterval(()=>{
+
+timerVal--
+
+if(timerVal>0){
+playSnd(400,"sine",0.1)
+}
+
+else if(timerVal===0){
+playSnd(600,"sine",0.2)
+}
+
+else{
+
+clearInterval(interval)
+gameState="PLAY"
+
+}
+
+},1000)
+
+}
+
+
+
+function input(e){
+
+if(e) e.preventDefault()
+
+if(gameState==="START"||gameState==="OVER"){
+
+reset()
+startCount()
+
+}
+
+else if(gameState==="PLAY"){
+
+v=window.innerHeight*-0.011
+playSnd(450,"square",0.08)
+
+}
+
+}
+
+
+
+window.addEventListener("touchstart",input,{passive:false})
+window.addEventListener("mousedown",input)
+window.addEventListener("resize",resize)
+
+
+
+function draw(){
+
+const w=window.innerWidth
+const h=window.innerHeight
+
+ctx.fillStyle="#70c5ce"
+ctx.fillRect(0,0,w,h)
+
+
+
+if(gameState==="PLAY"){
+
+v+=h*0.0006
+birdY+=v
+
+
+
+if(pipes.length===0||pipes[pipes.length-1].x<w-250){
+
+pipes.push({
+
+x:w,
+y:Math.random()*(h-300)+100,
+scored:false
+
+})
+
+}
+
+
+
+pipes.forEach((p,i)=>{
+
+p.x-=w*0.006
+
+ctx.fillStyle="#2ecc71"
+
+ctx.fillRect(p.x,0,60,p.y)
+ctx.fillRect(p.x,p.y+220,60,h)
+
+
+
+if(
+
+w*0.2+40>p.x &&
+w*0.2<p.x+60 &&
+(birdY<p.y || birdY+25>p.y+220)
+
+){
+
+gameState="OVER"
+playSnd(150,"sawtooth",0.4)
+
+}
+
+
+
+if(!p.scored && p.x<w*0.2){
+
+score++
+p.scored=true
+
+if(score>highScore){
+
+highScore=score
+localStorage.setItem("kz_bird_v3_best",highScore)
+
+}
+
+}
+
+
+
+if(p.x<-60){
+pipes.splice(i,1)
+}
+
+})
+
+
+
+if(birdY>h || birdY<0){
+
+gameState="OVER"
+playSnd(150,"sawtooth",0.4)
+
+}
+
+}
+
+
+
+ctx.save()
+
+ctx.translate(w*0.2+25,birdY+12.5)
+
+if(gameState==="PLAY"){
+
+ctx.rotate(Math.min(Math.PI/4,Math.max(-Math.PI/4,v*0.1)))
+
+}
+
+ctx.drawImage(flag,-25,-12.5,50,25)
+
+ctx.restore()
+
+
+
+ctx.fillStyle="white"
+ctx.textAlign="left"
+ctx.font="bold 20px Arial"
+
+ctx.fillText("РЕКОРД: "+highScore,20,40)
+
+
+
+ctx.textAlign="center"
+
+
+
+if(gameState==="COUNT"){
+
+const labels=["КЕТТІК!","БІР","ЕКІ","ҮШ"]
+
+ctx.font="bold 80px Arial"
+ctx.fillText(labels[timerVal],w/2,h/2)
+
+}
+
+
+
+else if(gameState==="PLAY"){
+
+ctx.font="bold 60px Arial"
+ctx.fillText(score,w/2,100)
+
+}
+
+
+
+else if(gameState==="OVER"){
+
+ctx.fillStyle="rgba(0,0,0,0.4)"
+ctx.fillRect(0,0,w,h)
+
+ctx.fillStyle="white"
+ctx.font="bold 40px Arial"
+ctx.fillText("ЖЕҢІЛДІҢ!",w/2,h/2)
+
+ctx.font="24px Arial"
+ctx.fillText("Ұпай: "+score,w/2,h/2+50)
+
+ctx.fillText("Қайталау үшін бас",w/2,h/2+90)
+
+}
+
+
+
+else if(gameState==="START"){
+
+ctx.font="bold 30px Arial"
+ctx.fillText("CLUMSY BIRD KZ",w/2,h/2)
+
+ctx.font="20px Arial"
+ctx.fillText("БАСТАУ ҮШІН БАС",w/2,h/2+40)
+
+}
+
+
+
+requestAnimationFrame(draw)
+
+}
+
+
+
+resize()
+reset()
+draw()
+
 </script>
+
 </body>
 </html>

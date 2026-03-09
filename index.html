@@ -1,141 +1,254 @@
 <!DOCTYPE html>
-<html lang="kk">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PAUL BIRD - Nature Edition</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paul Bird Forest</title>
+
 <style>
-body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family:Arial,sans-serif; }
-canvas { display:block; touch-action:none; }
+body{
+margin:0;
+overflow:hidden;
+font-family:Arial;
+}
+
+canvas{
+display:block;
+}
 </style>
+
 </head>
+
 <body>
+
 <canvas id="game"></canvas>
+
 <script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-const dpr = window.devicePixelRatio || 1;
 
-function resize(){
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    canvas.style.width = window.innerWidth + 'px';
-    canvas.style.height = window.innerHeight + 'px';
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-}
+const canvas=document.getElementById("game")
+const ctx=canvas.getContext("2d")
 
-// AUDIO SYSTEM
-let audioCtx = null;
-function unlockAudio(){
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if(audioCtx.state === "suspended") audioCtx.resume();
-}
-document.addEventListener("touchstart",unlockAudio,{once:true});
-document.addEventListener("mousedown",unlockAudio,{once:true});
+canvas.width=window.innerWidth
+canvas.height=window.innerHeight
 
-function playSnd(f,type,dur,vol=0.08){
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if(audioCtx.state === "suspended") audioCtx.resume();
-    try {
-        const osc = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.value = f;
-        g.gain.setValueAtTime(vol, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
-        osc.connect(g);
-        g.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + dur);
-    } catch(e){}
-}
+let y=canvas.height/2
+let v=0
+let gravity=0.6
 
-// Рекорд фиксированный
-const highScore = 96;
+let pipes=[]
+let score=0
 
-let birdY, v, score, pipes, gameState="START", timerVal=3;
-let pipeSpeed;
-let bgType="day"; // day/night/lightning
-let paulColor="white";
+const best=96
+
+let state="start"
+let countdown=0
+
+let paulColor="white"
 
 function reset(){
-    birdY = window.innerHeight/2;
-    v = 0;
-    score = 0;
-    pipes = [];
-    pipeSpeed = window.innerWidth * 0.006;
-    bgType = "day";
-    paulColor = "white";
+
+y=canvas.height/2
+v=0
+pipes=[]
+score=0
+
 }
 
-function startCount(){
-    gameState = "COUNT";
-    timerVal = 3;
-    playSnd(400,"sine",0.1);
-    let interval = setInterval(()=>{
-        timerVal--;
-        if(timerVal > 0) playSnd(400,"sine",0.1);
-        else if(timerVal === 0) playSnd(600,"sine",0.2);
-        else { clearInterval(interval); gameState="PLAY"; }
-    },1000);
+function startCountdown(){
+
+countdown=3
+state="count"
+
+const timer=setInterval(()=>{
+
+countdown--
+
+if(countdown<=0){
+
+clearInterval(timer)
+state="play"
+
 }
 
-function input(e){
-    if(e) e.preventDefault();
-    if(gameState==="START" || gameState==="OVER"){
-        reset(); startCount();
-    } else if(gameState==="PLAY"){
-        v = window.innerHeight * -0.011;
-        playSnd(450,"square",0.08);
-    }
+},1000)
+
 }
 
-window.addEventListener("touchstart",input,{passive:false});
-window.addEventListener("mousedown",input);
-window.addEventListener("resize",resize);
+function tap(){
 
-const flag = new Image();
-flag.src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI0YwQjA0RiIvPjwvc3ZnPg=="; // bird placeholder
+if(state==="start"||state==="over"){
+
+reset()
+startCountdown()
+
+}
+
+if(state==="play"){
+
+v=-10
+
+}
+
+}
+
+document.addEventListener("mousedown",tap)
+document.addEventListener("touchstart",tap)
 
 function drawBackground(){
-    if(bgType==="day"){
-        ctx.fillStyle="#70c5ce"; // светлое небо
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        // можно добавить деревья, горы и т.п.
-    } else if(bgType==="night"){
-        ctx.fillStyle="#001D3D"; // тёмное небо
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-    } else if(bgType==="lightning"){
-        ctx.fillStyle="#0A0A0A";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        // молния
-        if(Math.random()<0.05){
-            ctx.strokeStyle="white";
-            ctx.lineWidth=4;
-            ctx.beginPath();
-            ctx.moveTo(Math.random()*canvas.width,0);
-            ctx.lineTo(Math.random()*canvas.width,canvas.height);
-            ctx.stroke();
-        }
-    }
+
+if(score>=200){
+
+ctx.fillStyle="#000"
+ctx.fillRect(0,0,canvas.width,canvas.height)
+
+if(Math.random()<0.05){
+
+ctx.strokeStyle="white"
+ctx.lineWidth=3
+ctx.beginPath()
+ctx.moveTo(Math.random()*canvas.width,0)
+ctx.lineTo(Math.random()*canvas.width,canvas.height)
+ctx.stroke()
+
 }
 
-function draw(){
-    const w = window.innerWidth;
-    const h = window.innerHeight;
+}
 
-    drawBackground();
+else if(score>=100){
 
-    if(gameState === "PLAY"){
-        v += h*0.0006;
-        birdY += v;
+ctx.fillStyle="#001b44"
+ctx.fillRect(0,0,canvas.width,canvas.height)
 
-        if(pipes.length===0 || pipes[pipes.length-1].x<w-250){
-            pipes.push({ x:w, y: Math.random()*(h-300)+100, scored:false });
-        }
+}
 
-        pipes.forEach((p,i)=>{
-            p.x -= pipeSpeed;
-            ctx.fillStyle="#8B4513"; // коричневое бревно
-            ctx.fillRect(p.x,0,60,p.y);
-            ctx.fillRect(p.x,p.y+220
+else{
+
+let sky=ctx.createLinearGradient(0,0,0,canvas.height)
+sky.addColorStop(0,"#87ceeb")
+sky.addColorStop(1,"#e0f7ff")
+
+ctx.fillStyle=sky
+ctx.fillRect(0,0,canvas.width,canvas.height)
+
+ctx.fillStyle="#2ecc71"
+
+for(let i=0;i<10;i++){
+
+ctx.beginPath()
+ctx.arc(i*200,canvas.height,300,Math.PI,0)
+ctx.fill()
+
+}
+
+}
+
+}
+
+function drawLog(x,y,w,h){
+
+ctx.fillStyle="#8b5a2b"
+ctx.fillRect(x,y,w,h)
+
+ctx.strokeStyle="#5c3a1e"
+
+for(let i=0;i<h;i+=20){
+
+ctx.beginPath()
+ctx.moveTo(x,y+i)
+ctx.lineTo(x+w,y+i)
+ctx.stroke()
+
+}
+
+}
+
+function game(){
+
+drawBackground()
+
+if(state==="play"){
+
+v+=gravity
+y+=v
+
+if(pipes.length===0||pipes[pipes.length-1].x<canvas.width-300){
+
+pipes.push({
+x:canvas.width,
+y:Math.random()*(canvas.height-300)+100,
+scored:false
+})
+
+}
+
+pipes.forEach((p,i)=>{
+
+p.x-=2
+
+drawLog(p.x,0,70,p.y)
+drawLog(p.x,p.y+220,70,canvas.height)
+
+if(120>p.x&&120<p.x+70){
+
+if(y<p.y||y+30>p.y+220){
+
+state="over"
+
+}
+
+}
+
+if(!p.scored&&p.x<120){
+
+score++
+p.scored=true
+
+if(score%50===0){
+
+const colors=["white","yellow","cyan","lime","orange"]
+paulColor=colors[Math.floor(Math.random()*colors.length)]
+
+}
+
+}
+
+if(p.x<-70){
+pipes.splice(i,1)
+}
+
+})
+
+if(y>canvas.height||y<0){
+state="over"
+}
+
+}
+
+ctx.fillStyle=paulColor
+ctx.font="bold 32px Arial"
+ctx.fillText("PAUL",120,y+20)
+
+ctx.fillStyle="white"
+ctx.font="20px Arial"
+
+ctx.fillText("Очки: "+score,20,40)
+ctx.fillText("Рекорд: "+best,20,70)
+
+if(state==="count"){
+
+ctx.font="100px Arial"
+ctx.textAlign="center"
+ctx.fillText(countdown,canvas.width/2,canvas.height/2)
+
+}
+
+requestAnimationFrame(game)
+
+}
+
+game()
+
+</script>
+
+</body>
+</html>

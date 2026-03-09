@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>PAUL BIRD</title>
+<title>PAUL BIRD - Nature Edition</title>
 <style>
-body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background-color:#70c5ce; font-family:Arial,sans-serif; }
+body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family:Arial,sans-serif; }
 canvas { display:block; touch-action:none; }
 </style>
 </head>
@@ -55,13 +55,17 @@ const highScore = 96;
 
 let birdY, v, score, pipes, gameState="START", timerVal=3;
 let pipeSpeed;
+let bgType="day"; // day/night/lightning
+let paulColor="white";
 
 function reset(){
     birdY = window.innerHeight/2;
     v = 0;
     score = 0;
     pipes = [];
-    pipeSpeed = window.innerWidth * 0.006; // нормальная скорость
+    pipeSpeed = window.innerWidth * 0.006;
+    bgType = "day";
+    paulColor = "white";
 }
 
 function startCount(){
@@ -91,94 +95,47 @@ window.addEventListener("mousedown",input);
 window.addEventListener("resize",resize);
 
 const flag = new Image();
-flag.src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iIzAwQUVDRSIvPjxjaXJjbGUgY3g9IjQwMCIgY3k9IjIwMCIgcj0iNjAiIGZpbGw9IiNGRkQwNEQiLz48L3N2Zz4=";
+flag.src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgNDAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjQwMCIgZmlsbD0iI0YwQjA0RiIvPjwvc3ZnPg=="; // bird placeholder
+
+function drawBackground(){
+    if(bgType==="day"){
+        ctx.fillStyle="#70c5ce"; // светлое небо
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        // можно добавить деревья, горы и т.п.
+    } else if(bgType==="night"){
+        ctx.fillStyle="#001D3D"; // тёмное небо
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+    } else if(bgType==="lightning"){
+        ctx.fillStyle="#0A0A0A";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        // молния
+        if(Math.random()<0.05){
+            ctx.strokeStyle="white";
+            ctx.lineWidth=4;
+            ctx.beginPath();
+            ctx.moveTo(Math.random()*canvas.width,0);
+            ctx.lineTo(Math.random()*canvas.width,canvas.height);
+            ctx.stroke();
+        }
+    }
+}
 
 function draw(){
     const w = window.innerWidth;
     const h = window.innerHeight;
-    ctx.fillStyle = "#70c5ce";
-    ctx.fillRect(0,0,w,h);
+
+    drawBackground();
 
     if(gameState === "PLAY"){
         v += h*0.0006;
         birdY += v;
 
         if(pipes.length===0 || pipes[pipes.length-1].x<w-250){
-            pipes.push({ x:w, y:Math.random()*(h-300)+100, scored:false });
+            pipes.push({ x:w, y: Math.random()*(h-300)+100, scored:false });
         }
 
         pipes.forEach((p,i)=>{
             p.x -= pipeSpeed;
-            ctx.fillStyle="#2ecc71";
+            ctx.fillStyle="#8B4513"; // коричневое бревно
             ctx.fillRect(p.x,0,60,p.y);
-            ctx.fillRect(p.x,p.y+220,60,h);
-
-            // Столкновение
-            if(w*0.2+40 > p.x && w*0.2 < p.x+60 && (birdY<p.y || birdY+25>p.y+220)){
-                gameState="OVER";
-                playSnd(150,"sawtooth",0.4);
-            }
-
-            // Счёт
-            if(!p.scored && p.x<w*0.2){
-                score++;
-                p.scored=true;
-                // Каждые 20 очков необычный звук
-                if(score % 20 === 0){
-                    playSnd(880,"sine",0.25,0.15);
-                    setTimeout(()=>playSnd(1100,"sine",0.25,0.15),100);
-                } else {
-                    playSnd(900,"triangle",0.12);
-                }
-            }
-
-            if(p.x<-60) pipes.splice(i,1);
-        });
-
-        if(birdY>h || birdY<0){
-            gameState="OVER";
-            playSnd(150,"sawtooth",0.4);
-        }
-    }
-
-    // Текст Paul
-    ctx.save();
-    ctx.translate(w*0.2+25, birdY+12);
-    if(gameState==="PLAY") ctx.rotate(Math.min(Math.PI/4, Math.max(-Math.PI/4, v*0.1)));
-    ctx.fillStyle="white";
-    ctx.font="bold 20px Arial";
-    ctx.fillText("PAUL", -20,5);
-    ctx.restore();
-
-    // Рекорд
-    ctx.fillStyle="white";
-    ctx.textAlign="left";
-    ctx.font="bold 20px Arial";
-    ctx.fillText("РЕКОРД: "+highScore,20,40);
-
-    // Обратный отчёт после проигрыша
-    if(gameState==="OVER"){
-        ctx.fillStyle="rgba(0,0,0,0.4)";
-        ctx.fillRect(0,0,w,h);
-        ctx.fillStyle="white";
-        ctx.font="bold 40px Arial";
-        ctx.textAlign="center";
-        ctx.fillText("ЖЕҢІЛДІҢ!", w/2, h/2);
-        ctx.font="24px Arial";
-        ctx.fillText("Ұпай: "+score, w/2, h/2+50);
-
-        // Обратный отсчёт
-        ctx.fillText("Қайталау үшін бас: 3", w/2, h/2+90);
-        setTimeout(()=>{ctx.fillText("Қайталау үшін бас: 2", w/2, h/2+90);},500);
-        setTimeout(()=>{ctx.fillText("Қайталау үшін бас: 1", w/2, h/2+90);},1000);
-    }
-
-    requestAnimationFrame(draw);
-}
-
-resize();
-reset();
-draw();
-</script>
-</body>
-</html>
+            ctx.fillRect(p.x,p.y+220

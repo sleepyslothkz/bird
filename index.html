@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Paul Bird Forest</title>
+<title>Paul Bird</title>
 
 <style>
 body{
 margin:0;
 overflow:hidden;
 font-family:Arial;
+background:#000;
 }
 
 canvas{
@@ -18,7 +19,6 @@ display:block;
 </style>
 
 </head>
-
 <body>
 
 <canvas id="game"></canvas>
@@ -28,12 +28,17 @@ display:block;
 const canvas=document.getElementById("game")
 const ctx=canvas.getContext("2d")
 
+function resize(){
 canvas.width=window.innerWidth
 canvas.height=window.innerHeight
+}
 
-let y=canvas.height/2
-let v=0
-let gravity=0.6
+resize()
+window.addEventListener("resize",resize)
+
+let y
+let v
+let gravity=0.5
 
 let pipes=[]
 let score=0
@@ -44,6 +49,36 @@ let state="start"
 let countdown=0
 
 let paulColor="white"
+
+let lastTime=0
+
+// ---------- SOUND ----------
+
+let audioCtx
+
+function beep(freq,time){
+
+if(!audioCtx)
+audioCtx=new(window.AudioContext||window.webkitAudioContext)()
+
+const osc=audioCtx.createOscillator()
+const gain=audioCtx.createGain()
+
+osc.frequency.value=freq
+osc.connect(gain)
+gain.connect(audioCtx.destination)
+
+gain.gain.value=0.1
+
+osc.start()
+
+setTimeout(()=>{
+osc.stop()
+},time)
+
+}
+
+// ---------- GAME ----------
 
 function reset(){
 
@@ -59,15 +94,15 @@ function startCountdown(){
 countdown=3
 state="count"
 
-const timer=setInterval(()=>{
+const t=setInterval(()=>{
 
 countdown--
 
+beep(400,80)
+
 if(countdown<=0){
-
-clearInterval(timer)
+clearInterval(t)
 state="play"
-
 }
 
 },1000)
@@ -83,9 +118,10 @@ startCountdown()
 
 }
 
-if(state==="play"){
+else if(state==="play"){
 
-v=-10
+v=-9
+beep(700,60)
 
 }
 
@@ -94,17 +130,20 @@ v=-10
 document.addEventListener("mousedown",tap)
 document.addEventListener("touchstart",tap)
 
-function drawBackground(){
+// ---------- BACKGROUND ----------
+
+function background(){
 
 if(score>=200){
 
 ctx.fillStyle="#000"
 ctx.fillRect(0,0,canvas.width,canvas.height)
 
-if(Math.random()<0.05){
+if(Math.random()<0.03){
 
 ctx.strokeStyle="white"
 ctx.lineWidth=3
+
 ctx.beginPath()
 ctx.moveTo(Math.random()*canvas.width,0)
 ctx.lineTo(Math.random()*canvas.width,canvas.height)
@@ -123,26 +162,18 @@ ctx.fillRect(0,0,canvas.width,canvas.height)
 
 else{
 
-let sky=ctx.createLinearGradient(0,0,0,canvas.height)
-sky.addColorStop(0,"#87ceeb")
-sky.addColorStop(1,"#e0f7ff")
+let g=ctx.createLinearGradient(0,0,0,canvas.height)
+g.addColorStop(0,"#87ceeb")
+g.addColorStop(1,"#e0f7ff")
 
-ctx.fillStyle=sky
+ctx.fillStyle=g
 ctx.fillRect(0,0,canvas.width,canvas.height)
 
-ctx.fillStyle="#2ecc71"
-
-for(let i=0;i<10;i++){
-
-ctx.beginPath()
-ctx.arc(i*200,canvas.height,300,Math.PI,0)
-ctx.fill()
-
 }
 
 }
 
-}
+// ---------- LOG ----------
 
 function drawLog(x,y,w,h){
 
@@ -151,7 +182,7 @@ ctx.fillRect(x,y,w,h)
 
 ctx.strokeStyle="#5c3a1e"
 
-for(let i=0;i<h;i+=20){
+for(let i=0;i<h;i+=25){
 
 ctx.beginPath()
 ctx.moveTo(x,y+i)
@@ -162,16 +193,21 @@ ctx.stroke()
 
 }
 
-function game(){
+// ---------- GAME LOOP ----------
 
-drawBackground()
+function game(time){
+
+const dt=(time-lastTime)/16
+lastTime=time
+
+background()
 
 if(state==="play"){
 
-v+=gravity
-y+=v
+v+=gravity*dt
+y+=v*dt
 
-if(pipes.length===0||pipes[pipes.length-1].x<canvas.width-300){
+if(pipes.length===0||pipes[pipes.length-1].x<canvas.width-320){
 
 pipes.push({
 x:canvas.width,
@@ -183,7 +219,7 @@ scored:false
 
 pipes.forEach((p,i)=>{
 
-p.x-=2
+p.x-=2.2*dt
 
 drawLog(p.x,0,70,p.y)
 drawLog(p.x,p.y+220,70,canvas.height)
@@ -193,6 +229,7 @@ if(120>p.x&&120<p.x+70){
 if(y<p.y||y+30>p.y+220){
 
 state="over"
+beep(150,200)
 
 }
 
@@ -202,6 +239,8 @@ if(!p.scored&&p.x<120){
 
 score++
 p.scored=true
+
+beep(900,50)
 
 if(score%50===0){
 
@@ -246,7 +285,8 @@ requestAnimationFrame(game)
 
 }
 
-game()
+reset()
+requestAnimationFrame(game)
 
 </script>
 

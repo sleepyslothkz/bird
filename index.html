@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<html lang="kk">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PAUL BIRD</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Paul Bird</title>
 
 <style>
-html,body{
+
+body{
 margin:0;
-padding:0;
-width:100%;
-height:100%;
 overflow:hidden;
 background:#70c5ce;
 font-family:Arial;
@@ -19,6 +17,7 @@ font-family:Arial;
 canvas{
 display:block;
 }
+
 </style>
 
 </head>
@@ -31,13 +30,8 @@ display:block;
 const canvas = document.getElementById("game")
 const ctx = canvas.getContext("2d")
 
-function resize(){
 canvas.width = window.innerWidth
 canvas.height = window.innerHeight
-}
-
-resize()
-window.addEventListener("resize",resize)
 
 let birdY = canvas.height/2
 let velocity = 0
@@ -45,19 +39,25 @@ let gravity = 0.6
 
 let pipes = []
 let score = 0
-let gameState = "START"
+let best = localStorage.getItem("best") || 0
+
+let state = "start"
+
+const jumpSound = new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg")
 
 function jump(){
 
-if(gameState === "START"){
-gameState = "PLAY"
+if(state === "start"){
+state="play"
 }
 
-if(gameState === "PLAY"){
-velocity = -10
+if(state === "play"){
+velocity = -8
+jumpSound.currentTime = 0
+jumpSound.play()
 }
 
-if(gameState === "OVER"){
+if(state === "over"){
 restart()
 }
 
@@ -72,28 +72,25 @@ birdY = canvas.height/2
 velocity = 0
 pipes = []
 score = 0
-gameState = "PLAY"
+state = "play"
 
 }
 
-function update(){
+function game(){
 
-const w = canvas.width
-const h = canvas.height
+ctx.fillStyle="#70c5ce"
+ctx.fillRect(0,0,canvas.width,canvas.height)
 
-ctx.fillStyle = "#70c5ce"
-ctx.fillRect(0,0,w,h)
-
-if(gameState === "PLAY"){
+if(state==="play"){
 
 velocity += gravity
 birdY += velocity
 
-if(pipes.length === 0 || pipes[pipes.length-1].x < w-250){
+if(pipes.length === 0 || pipes[pipes.length-1].x < canvas.width-300){
 
 pipes.push({
-x:w,
-y:Math.random()*(h-300)+100,
+x:canvas.width,
+y:Math.random()*(canvas.height-300)+100,
 scored:false
 })
 
@@ -101,60 +98,73 @@ scored:false
 
 pipes.forEach((p,i)=>{
 
-p.x -= 5
+p.x -= 2   // МЕДЛЕННЕЕ
 
-ctx.fillStyle = "#2ecc71"
+ctx.fillStyle="#2ecc71"
 
 ctx.fillRect(p.x,0,60,p.y)
-ctx.fillRect(p.x,p.y+200,60,h)
+ctx.fillRect(p.x,p.y+200,60,canvas.height)
 
-if(100+30 > p.x && 100 < p.x+60 && (birdY < p.y || birdY+30 > p.y+200)){
-gameState = "OVER"
+if(120 > p.x && 120 < p.x+60){
+
+if(birdY < p.y || birdY+30 > p.y+200){
+state="over"
 }
 
-if(!p.scored && p.x < 100){
+}
+
+if(!p.scored && p.x < 120){
 score++
-p.scored = true
+p.scored=true
+
+if(score>best){
+best=score
+localStorage.setItem("best",best)
 }
 
-if(p.x < -60){
+}
+
+if(p.x<-60){
 pipes.splice(i,1)
 }
 
 })
 
-if(birdY > h || birdY < 0){
-gameState = "OVER"
+if(birdY>canvas.height || birdY<0){
+state="over"
 }
 
 }
 
-ctx.fillStyle = "white"
-ctx.fillRect(100,birdY,30,30)
+ctx.fillStyle="white"
+ctx.font="30px Arial"
+ctx.fillText("PAUL",120,birdY+20)
 
-ctx.fillStyle = "white"
-ctx.font = "40px Arial"
-ctx.textAlign = "center"
+ctx.font="40px Arial"
+ctx.textAlign="center"
 
-if(gameState === "START"){
-ctx.fillText("PAUL BIRD",w/2,h/2)
-ctx.fillText("Тап для старта",w/2,h/2+50)
+if(state==="start"){
+ctx.fillText("PAUL BIRD",canvas.width/2,canvas.height/2)
+ctx.fillText("Нажми чтобы начать",canvas.width/2,canvas.height/2+50)
 }
 
-if(gameState === "PLAY"){
-ctx.fillText(score,w/2,80)
+if(state==="play"){
+ctx.fillText(score,canvas.width/2,80)
+ctx.font="20px Arial"
+ctx.fillText("BEST: "+best,canvas.width/2,110)
 }
 
-if(gameState === "OVER"){
-ctx.fillText("GAME OVER",w/2,h/2)
-ctx.fillText("Score: "+score,w/2,h/2+50)
+if(state==="over"){
+ctx.fillText("GAME OVER",canvas.width/2,canvas.height/2)
+ctx.fillText("Score: "+score,canvas.width/2,canvas.height/2+50)
+ctx.fillText("BEST: "+best,canvas.width/2,canvas.height/2+90)
 }
 
-requestAnimationFrame(update)
+requestAnimationFrame(game)
 
 }
 
-update()
+game()
 
 </script>
 
